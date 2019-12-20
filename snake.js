@@ -12,9 +12,10 @@ class Node {
     this.box = blessed.box({
       left: left,
       top: top,
-      width: 1,
+      width: 2,
       height: 1,
-      bg: 'green' 
+      bg: null
+      //bg: 'green' 
     });
     this.dir = dir;
   }
@@ -34,24 +35,32 @@ class Node {
         this.box.top += 1;
         break;
     }
+    const store = this.dir;
     this.dir = prevDir;
+    return store;
   }
 
 }
 
 class Snake {
-  constructor(left, top) {
+  constructor(left, top, view) {
     this.head = new Node(left, top, Dirs.DOWN);
     this.body = [];
+    this.eggs = [];
+    this.fertility = 2;
   }
 
-  update(egg) {
+  update() {
+    // Move each segment then pass down their direction
+    // for the next update
     let prevDir = this.head.move();
     this.body.forEach(node => {
       prevDir = node.move(prevDir);
     });
-    if (egg) {
-      this.body.push(egg);
+
+    // Snakes have a gestation period of one tick
+    if (this.eggs.length > 0) {
+      this.body.push(this.eggs.shift());
     }
   }
   
@@ -59,12 +68,20 @@ class Snake {
     this.head.dir = Dirs[dir.toUpperCase()];
   }
 
-  grow() {
-    const last = this.body.length > 0 ? this.body[this.body.length - 1] : this.head;
+  grow(view) {
+    const tail = this.body.length > 0 ? this.body[this.body.length - 1] : this.head;
     
-    const egg = new Node(last.box.left, last.box.right, last.dir);
-    this.update(egg);
-    return egg.box;
+    // copy the tail to be added after the next update
+    for (let i = 0; i < this.fertility; i++) {
+      const egg = new Node(tail.box.left, tail.box.top, tail.dir);
+      this.eggs.push(egg);
+      view.append(egg.box);
+    }
+  }
+
+  intersects(left, top) {
+    left += left % 2;
+    return (left === this.head.box.left && top === this.head.box.top);
   }
   
 }
